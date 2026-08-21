@@ -126,8 +126,11 @@ not the source of truth schema.
    demo users below — no `dotnet ef database update` needed.
 
 3. **Point the client at that URL.** `client/.env.development` defaults to
-   `https://localhost:7059`; override it locally with a gitignored `client/.env.local`
-   (matches the `*.local` pattern in `client/.gitignore`, so it never gets committed):
+   `https://localhost:7059`; override it locally with a gitignored
+   `client/.env.development.local` (matches the `*.local` pattern in `client/.gitignore`, so it
+   never gets committed). It must be `.env.development.local`, not `.env.local` — Vite loads
+   `.env.[mode]` files *after* `.env.local`, so plain `.env.local` would get silently overridden
+   by the committed `.env.development`:
 
    ```
    VITE_API_BASE_URL=http://localhost:5080
@@ -136,13 +139,13 @@ not the source of truth schema.
    From a terminal, in PowerShell (VS Code's default on Windows):
 
    ```powershell
-   "VITE_API_BASE_URL=http://localhost:5080" | Out-File -Encoding utf8 client/.env.local
+   "VITE_API_BASE_URL=http://localhost:5080" | Out-File -Encoding utf8 client/.env.development.local
    ```
 
    or from Git Bash / WSL:
 
    ```bash
-   echo "VITE_API_BASE_URL=http://localhost:5080" > client/.env.local
+   echo "VITE_API_BASE_URL=http://localhost:5080" > client/.env.development.local
    ```
 
 4. **Run the frontend** as in Frontend setup above (`npm install && npm run dev`), then sign in
