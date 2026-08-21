@@ -11,5 +11,10 @@ obj/
 # EF Core migrations bundle output (if ever produced)
 *.dacpac
 
+# SQLite demo database (Db:Provider=Sqlite, see appsettings.Demo.json)
+*.db
+*.db-shm
+*.db-wal
+
 # Local secrets never live in the repo — see README (dotnet user-secrets)
 appsettings.*.local.json

@@ -120,13 +120,25 @@ builder.Services.AddApplicationInsightsTelemetry();
 
 var app = builder.Build();
 
+// Db:Provider=Sqlite is a zero-install demo fallback (see README) — it builds the schema straight
+// from the current model via EnsureCreated, so it never needs its own set of migrations to maintain.
+var isSqliteDemo = string.Equals(builder.Configuration["Db:Provider"], "Sqlite", StringComparison.OrdinalIgnoreCase);
+if (isSqliteDemo)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<TimesheetDbContext>();
+    await db.Database.EnsureCreatedAsync();
+}
 // Local dev convenience: apply migrations (incl. seed data) on startup so `dotnet run` alone gets you a working DB.
-if (app.Environment.IsDevelopment())
+else if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<TimesheetDbContext>();
     await db.Database.MigrateAsync();
+}
 
+if (app.Environment.IsDevelopment() || isSqliteDemo)
+{
     app.UseSwagger();
     app.UseSwaggerUI();
 }

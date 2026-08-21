@@ -15,7 +15,18 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<TimesheetDbContext>(options =>
-            options.UseSqlServer(BuildConnectionString(configuration)));
+        {
+            if (string.Equals(configuration["Db:Provider"], "Sqlite", StringComparison.OrdinalIgnoreCase))
+            {
+                var sqliteConnectionString = configuration.GetConnectionString("TimesheetDb")
+                    ?? throw new InvalidOperationException("ConnectionStrings:TimesheetDb is not configured.");
+                options.UseSqlite(sqliteConnectionString);
+            }
+            else
+            {
+                options.UseSqlServer(BuildConnectionString(configuration));
+            }
+        });
 
         services.Configure<LocalAuthOptions>(configuration.GetSection(LocalAuthOptions.SectionName));
         services.Configure<EntraIdOptions>(configuration.GetSection(EntraIdOptions.SectionName));
