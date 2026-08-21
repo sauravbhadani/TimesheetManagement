@@ -106,10 +106,17 @@ not the source of truth schema.
    dotnet user-secrets set "Auth:Local:SigningKey" "<any long random string>"
    ```
 
-2. **Run the API in Demo mode**, still from `src/TimesheetManagement.Api`:
+2. **Run the API in Demo mode**, still from `src/TimesheetManagement.Api` — PowerShell:
 
-   ```
+   ```powershell
    $env:ASPNETCORE_ENVIRONMENT = "Demo"
+   dotnet run --no-launch-profile --urls "http://localhost:5080"
+   ```
+
+   or Git Bash / WSL:
+
+   ```bash
+   export ASPNETCORE_ENVIRONMENT=Demo
    dotnet run --no-launch-profile --urls "http://localhost:5080"
    ```
 
@@ -119,10 +126,23 @@ not the source of truth schema.
    demo users below — no `dotnet ef database update` needed.
 
 3. **Point the client at that URL.** `client/.env.development` defaults to
-   `https://localhost:7059`; override it locally with a gitignored `client/.env.local`:
+   `https://localhost:7059`; override it locally with a gitignored `client/.env.local`
+   (matches the `*.local` pattern in `client/.gitignore`, so it never gets committed):
 
    ```
    VITE_API_BASE_URL=http://localhost:5080
+   ```
+
+   From a terminal, in PowerShell (VS Code's default on Windows):
+
+   ```powershell
+   "VITE_API_BASE_URL=http://localhost:5080" | Out-File -Encoding utf8 client/.env.local
+   ```
+
+   or from Git Bash / WSL:
+
+   ```bash
+   echo "VITE_API_BASE_URL=http://localhost:5080" > client/.env.local
    ```
 
 4. **Run the frontend** as in Frontend setup above (`npm install && npm run dev`), then sign in
