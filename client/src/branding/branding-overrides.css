@@ -1,0 +1,39 @@
+/*
+ * Bootstrap's compiled .btn-primary/.btn-outline-primary/.form-check-input:checked rules bake in
+ * literal hex colors rather than referencing --bs-primary, so setting that custom property alone
+ * (done in BrandingContext) re-colors utility classes like bg-primary/text-primary but not these
+ * components. These overrides route them through the same --brand-primary/--brand-secondary
+ * variables so "apply live app-wide" actually covers buttons, not just the header.
+ */
+
+.btn-primary {
+  --bs-btn-bg: var(--brand-primary, #0d6efd);
+  --bs-btn-border-color: var(--brand-primary, #0d6efd);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--brand-primary, #0d6efd) 85%, black);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--brand-primary, #0d6efd) 80%, black);
+  --bs-btn-active-bg: color-mix(in srgb, var(--brand-primary, #0d6efd) 75%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--brand-primary, #0d6efd) 70%, black);
+  --bs-btn-disabled-bg: var(--brand-primary, #0d6efd);
+  --bs-btn-disabled-border-color: var(--brand-primary, #0d6efd);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--brand-primary, #0d6efd);
+  --bs-btn-border-color: var(--brand-primary, #0d6efd);
+  --bs-btn-hover-bg: var(--brand-primary, #0d6efd);
+  --bs-btn-hover-border-color: var(--brand-primary, #0d6efd);
+  --bs-btn-active-bg: var(--brand-primary, #0d6efd);
+  --bs-btn-active-border-color: var(--brand-primary, #0d6efd);
+}
+
+.btn-secondary {
+  --bs-btn-bg: var(--brand-secondary, #6c757d);
+  --bs-btn-border-color: var(--brand-secondary, #6c757d);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--brand-secondary, #6c757d) 85%, black);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--brand-secondary, #6c757d) 80%, black);
+}
+
+.form-check-input:checked {
+  background-color: var(--brand-primary, #0d6efd);
+  border-color: var(--brand-primary, #0d6efd);
+}

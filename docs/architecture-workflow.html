@@ -1,0 +1,602 @@
+<title>Timesheet Module — Architecture &amp; Workflow</title>
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  :root {
+    --paper: #F4F6F8;
+    --ink: #1C2733;
+    --muted: #5B6B7C;
+    --accent: #2E6E9E;
+    --accent-soft: #DCEAF5;
+    --copper: #A8632B;
+    --copper-soft: #F3E2CE;
+    --rule: #C8D3DC;
+    --rule-strong: #9FB0BE;
+    --card: #FFFFFF;
+
+    --draft: #7C8798;
+    --submitted: #A97A16;
+    --approved: #2F8F5B;
+    --rejected: #B8433B;
+
+    --sheet-bg: #F8FAFB;
+    --sheet-line: #C7D3DC;
+    --sheet-ink: #1C2733;
+    --sheet-accent: #2E6E9E;
+    --sheet-accent2: #A8632B;
+
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161D;
+      --ink: #DCE6EF;
+      --muted: #90A2B4;
+      --accent: #6FA8D6;
+      --accent-soft: #1B2E3D;
+      --copper: #D89A5C;
+      --copper-soft: #3A2A18;
+      --rule: #2A3947;
+      --rule-strong: #3C4F60;
+      --card: #161F28;
+      --draft: #93A0B0;
+      --submitted: #D8AC4B;
+      --approved: #57B888;
+      --rejected: #E17167;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #10161D; --ink: #DCE6EF; --muted: #90A2B4; --accent: #6FA8D6;
+    --accent-soft: #1B2E3D; --copper: #D89A5C; --copper-soft: #3A2A18;
+    --rule: #2A3947; --rule-strong: #3C4F60; --card: #161F28;
+    --draft: #93A0B0; --submitted: #D8AC4B; --approved: #57B888; --rejected: #E17167;
+  }
+  :root[data-theme="light"] {
+    --paper: #F4F6F8; --ink: #1C2733; --muted: #5B6B7C; --accent: #2E6E9E;
+    --accent-soft: #DCEAF5; --copper: #A8632B; --copper-soft: #F3E2CE;
+    --rule: #C8D3DC; --rule-strong: #9FB0BE; --card: #FFFFFF;
+    --draft: #7C8798; --submitted: #A97A16; --approved: #2F8F5B; --rejected: #B8433B;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  /* ---------- Title block ---------- */
+  .titleblock {
+    border: 1px solid var(--rule-strong);
+    border-radius: 2px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 2.75rem;
+    background: var(--card);
+  }
+  .titleblock .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin: 0 0 0.5rem;
+  }
+  .titleblock h1 {
+    font-family: var(--font-display);
+    font-size: 2.15rem;
+    font-weight: 600;
+    margin: 0 0 0.35rem;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .titleblock .sub {
+    color: var(--muted);
+    font-size: 1rem;
+    margin: 0 0 1.1rem;
+    max-width: 62ch;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.75rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .meta-row strong { color: var(--ink); font-weight: 600; }
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.15em 0.65em;
+    border-radius: 999px;
+    background: var(--copper-soft);
+    color: var(--copper);
+    font-weight: 600;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .status-chip::before { content: "●"; font-size: 0.6rem; }
+
+  /* ---------- Sections ---------- */
+  section { margin-bottom: 3rem; }
+  .section-head { margin-bottom: 1.1rem; }
+  .section-head .num {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+  .section-head h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+  }
+  p { margin: 0 0 1rem; max-width: 68ch; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.4rem; max-width: 64ch; }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+  }
+
+  /* ---------- Diagram sheet ---------- */
+  .sheet {
+    background: var(--sheet-bg);
+    border: 1px solid var(--rule-strong);
+    border-radius: 3px;
+    padding: 1.25rem;
+    margin: 0 0 0.75rem;
+    background-image:
+      linear-gradient(var(--sheet-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--sheet-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: -1px -1px;
+    overflow-x: auto;
+  }
+  .sheet-caption {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    margin: 0 0 2rem;
+  }
+  .sheet .mermaid { display: flex; justify-content: center; min-width: 560px; }
+
+  /* ---------- Layer legend ---------- */
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.6rem;
+    margin: 0 0 1rem;
+  }
+  .legend-item {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 0.65rem 0.8rem;
+  }
+  .legend-swatch {
+    width: 0.7rem; height: 0.7rem; border-radius: 2px;
+    margin-top: 0.3rem; flex: none;
+  }
+  .legend-item .t { font-weight: 600; font-size: 0.88rem; }
+  .legend-item .d { color: var(--muted); font-size: 0.8rem; }
+
+  /* ---------- Status pills for lifecycle ---------- */
+  .pill { display: inline-flex; align-items: center; gap: 0.4em; font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 0.2em 0.6em; border-radius: 999px; }
+  .pill.draft { background: color-mix(in srgb, var(--draft) 18%, transparent); color: var(--draft); }
+  .pill.submitted { background: color-mix(in srgb, var(--submitted) 18%, transparent); color: var(--submitted); }
+  .pill.approved { background: color-mix(in srgb, var(--approved) 18%, transparent); color: var(--approved); }
+  .pill.rejected { background: color-mix(in srgb, var(--rejected) 18%, transparent); color: var(--rejected); }
+
+  /* ---------- Table ---------- */
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--card); }
+  tr:last-child td { border-bottom: none; }
+  td:first-child, th:first-child { white-space: nowrap; }
+
+  /* ---------- Build sequence ---------- */
+  .seq { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .seq li {
+    counter-increment: step;
+    display: flex;
+    gap: 0.9rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--rule);
+    max-width: none;
+  }
+  .seq li:last-child { border-bottom: none; }
+  .seq li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    flex: none;
+    padding-top: 0.1em;
+  }
+
+  /* ---------- Assumptions ---------- */
+  .callout {
+    border-left: 3px solid var(--copper);
+    background: var(--copper-soft);
+    padding: 0.9rem 1.1rem;
+    border-radius: 0 3px 3px 0;
+    margin-bottom: 1rem;
+  }
+  .callout h3 { margin: 0 0 0.4rem; font-size: 0.95rem; font-family: var(--font-body); font-weight: 700; }
+  .callout p, .callout ul { margin: 0; }
+  .callout ul { padding-left: 1.1rem; }
+  .callout li { margin-bottom: 0.3rem; }
+
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+</style>
+
+<div class="page">
+
+  <div class="titleblock">
+    <p class="eyebrow">Design Review — Internal Timesheet Module</p>
+    <h1>Architecture &amp; Workflow</h1>
+    <p class="sub">System design proposed from <code>Timesheet-Module-Build-Prompt.md</code>, for review before implementation begins.</p>
+    <div class="meta-row">
+      <span><strong>Stack</strong> ASP.NET Core 8 · React/TS · SQL Server (EF Core)</span>
+      <span><strong>Auth</strong> Pluggable Local / Entra ID</span>
+      <span><strong>Prepared</strong> 2026-08-21</span>
+      <span class="status-chip">Pending approval</span>
+    </div>
+  </div>
+
+  <section id="scope">
+    <div class="section-head">
+      <span class="num">SECTION 01</span>
+      <h2>What this covers</h2>
+    </div>
+    <p>Two diagrams for sign-off before any code is written: a <strong>component architecture</strong> (how the pieces run and talk to each other) and a <strong>workflow</strong> (how a timesheet actually moves from a blank grid to an approved record). An entity relationship diagram is included as supporting detail for the same review, since it underpins both.</p>
+  </section>
+
+  <section id="arch">
+    <div class="section-head">
+      <span class="num">SECTION 02</span>
+      <h2>Architecture diagram</h2>
+    </div>
+    <p>Layered API (Controllers → Services → Repositories → EF Core) behind a single auth abstraction, so the same controllers and React auth context work unmodified whether a deployment is running the seeded local login or a customer's Entra ID tenant — only <code>Auth:Provider</code> in config changes.</p>
+
+    <div class="sheet">
+      <pre class="mermaid">
+%%{init: {"theme":"base","themeVariables":{"background":"#F8FAFB","primaryColor":"#EAF1F6","primaryTextColor":"#1C2733","primaryBorderColor":"#2E6E9E","lineColor":"#5B6B7C","secondaryColor":"#F3E2CE","secondaryTextColor":"#1C2733","secondaryBorderColor":"#A8632B","tertiaryColor":"#FFFFFF","tertiaryTextColor":"#1C2733","tertiaryBorderColor":"#C8D3DC","fontFamily":"SFMono-Regular, Consolas, monospace","fontSize":"13px"}}}%%
+flowchart TB
+  subgraph CLIENT["REACT + TYPESCRIPT SPA · Bootstrap 5"]
+    UI["Role-scoped views<br/>Employee grid · Manager review · Admin CRUD"]
+    ACTX["Auth context<br/>local JWT store OR MSAL"]
+    BRAND["Branding config<br/>localStorage / JSON — no API"]
+  end
+
+  subgraph API["ASP.NET CORE 8 WEB API"]
+    MW["Auth middleware<br/>IAuthProvider: Local | EntraId"]
+    ERR["Global error handling"]
+    CTRL["Controllers"]
+    SVC["Services<br/>business rules, state transitions"]
+    REPO["Repositories"]
+  end
+
+  subgraph DATA["SQL SERVER"]
+    EF["EF Core — code-first + migrations"]
+    DB[("Users · Projects · ProjectTasks<br/>TimesheetWeek · TimesheetEntry · ApprovalHistory")]
+  end
+
+  subgraph IDP["IDENTITY — mode selected by config"]
+    LOCAL["Seeded local users<br/>dev dropdown → local JWT"]
+    ENTRA["Customer Entra ID tenant<br/>MSAL + app roles/groups"]
+  end
+
+  subgraph CFG["CROSS-CUTTING"]
+    CONF["appsettings.json / env vars<br/>Auth:Provider, ConnectionStrings, AI key"]
+    AI["Azure Application Insights<br/>requests, deps, exceptions, ILogger"]
+  end
+
+  subgraph HOST["AZURE APP SERVICE (or local dev host)"]
+    APIHOST["API app service"]
+    WEBHOST["Static SPA host"]
+  end
+
+  UI -- HTTPS + bearer token --> CTRL
+  ACTX -. token issuance / MSAL redirect .-> MW
+  CTRL --> SVC --> REPO --> EF --> DB
+  MW -- "mode = Local" --> LOCAL
+  MW -- "mode = EntraId" --> ENTRA
+  CTRL --> MW
+  CONF -.-> MW
+  CONF -.-> EF
+  CONF -.-> AI
+  SVC -.telemetry.-> AI
+  ERR -.-> CTRL
+  WEBHOST --- UI
+  APIHOST --- API
+  BRAND -.-> UI
+
+  classDef client fill:#EAF1F6,stroke:#2E6E9E,color:#1C2733;
+  classDef api fill:#FFFFFF,stroke:#2E6E9E,color:#1C2733;
+  classDef data fill:#F3E2CE,stroke:#A8632B,color:#1C2733;
+  classDef idp fill:#FFFFFF,stroke:#A8632B,stroke-dasharray:3 2,color:#1C2733;
+  classDef cfg fill:#F8FAFB,stroke:#9FB0BE,color:#5B6B7C;
+  class UI,ACTX,BRAND client;
+  class MW,ERR,CTRL,SVC,REPO api;
+  class EF,DB data;
+  class LOCAL,ENTRA idp;
+  class CONF,AI cfg;
+      </pre>
+    </div>
+    <p class="sheet-caption">Fig. 1 — Component / container view. Dashed edges are config- or event-driven rather than direct request paths.</p>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:#2E6E9E"></span><div><div class="t">Client &amp; API</div><div class="d">Same shape in both auth modes — controllers never branch on provider.</div></div></div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#A8632B"></span><div><div class="t">Data &amp; Identity</div><div class="d">SQL Server schema is customer-agnostic; identity source is the only swap.</div></div></div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#9FB0BE"></span><div><div class="t">Config &amp; telemetry</div><div class="d">Connection strings, tenant IDs, AI keys — externalized, never hard-coded.</div></div></div>
+    </div>
+  </section>
+
+  <section id="data-model">
+    <div class="section-head">
+      <span class="num">SECTION 03</span>
+      <h2>Data model (supporting detail)</h2>
+    </div>
+    <p>Six entities, matching Section 3 of the brief exactly. <code>ProjectTask</code> is named to dodge the C# <code>Task</code> collision; day-of-week hours are flat columns on <code>TimesheetEntry</code> rather than a child table, per the brief's guidance to keep the grid simple.</p>
+    <div class="sheet">
+      <pre class="mermaid">
+%%{init: {"theme":"base","themeVariables":{"background":"#F8FAFB","primaryColor":"#EAF1F6","primaryTextColor":"#1C2733","primaryBorderColor":"#2E6E9E","lineColor":"#5B6B7C","tertiaryColor":"#FFFFFF","fontFamily":"SFMono-Regular, Consolas, monospace","fontSize":"12px"}}}%%
+erDiagram
+  USER ||--o{ TIMESHEETWEEK : submits
+  USER ||--o{ APPROVALHISTORY : "acts on"
+  USER ||--o{ USER : manages
+  PROJECT ||--o{ PROJECTTASK : has
+  PROJECT ||--o{ TIMESHEETENTRY : "billed to"
+  PROJECTTASK ||--o{ TIMESHEETENTRY : "logged as"
+  TIMESHEETWEEK ||--o{ TIMESHEETENTRY : contains
+  TIMESHEETWEEK ||--o{ APPROVALHISTORY : has
+
+  USER {
+    guid Id
+    string ExternalAuthId
+    string FullName
+    string Email
+    enum Role
+    guid ManagerId FK
+    bool IsActive
+  }
+  PROJECT {
+    guid Id
+    string Name
+    string Code
+    bool IsActive
+  }
+  PROJECTTASK {
+    guid Id
+    guid ProjectId FK
+    string Name
+    enum Classification
+    bool IsBillable
+    bool IsActive
+  }
+  TIMESHEETWEEK {
+    guid Id
+    guid UserId FK
+    date WeekStartDate
+    enum Status
+    guid ApprovedBy FK
+    string RejectionComment
+    decimal TotalHours
+  }
+  TIMESHEETENTRY {
+    guid Id
+    guid TimesheetWeekId FK
+    guid ProjectId FK
+    guid ProjectTaskId FK
+    decimal MonHours
+    decimal SunHours
+    string Notes
+  }
+  APPROVALHISTORY {
+    guid Id
+    guid TimesheetWeekId FK
+    enum Action
+    guid ActionBy FK
+    datetime ActionAt
+  }
+      </pre>
+    </div>
+    <p class="sheet-caption">Fig. 2 — ERD. <code>ManagerId</code> is a self-FK on <code>USER</code>, so a Manager is just a User whose direct reports point back at them — not a separate person type.</p>
+  </section>
+
+  <section id="workflow">
+    <div class="section-head">
+      <span class="num">SECTION 04</span>
+      <h2>Workflow — timesheet lifecycle</h2>
+    </div>
+    <p>Four states. The only loop back is Rejected → Submitted; everything else is one-directional, and Approved is terminal for everyone except Admin (read-only override, not a state transition).</p>
+    <div class="sheet">
+      <pre class="mermaid">
+%%{init: {"theme":"base","themeVariables":{"background":"#F8FAFB","primaryColor":"#EAF1F6","primaryTextColor":"#1C2733","primaryBorderColor":"#2E6E9E","lineColor":"#5B6B7C","tertiaryColor":"#FFFFFF","fontFamily":"SFMono-Regular, Consolas, monospace","fontSize":"13px"}}}%%
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Draft: Save draft (repeatable, freely editable)
+  Draft --> Submitted: Employee submits
+  Submitted --> Approved: Manager approves
+  Submitted --> Rejected: Manager rejects + comment
+  Rejected --> Submitted: Employee edits and resubmits
+  Approved --> [*]: Locked read-only (Admin can still view)
+
+  note right of Submitted
+    Locked for the employee
+    while pending manager action
+  end note
+  note right of Rejected
+    Comment required;
+    employee regains edit access
+  end note
+      </pre>
+    </div>
+    <p class="sheet-caption">Fig. 3 — <code>TimesheetWeek.Status</code> transitions. Enforced in the Service layer, not just hidden in the UI.</p>
+
+    <div class="legend">
+      <div class="legend-item"><span class="pill draft">Draft</span><div><div class="d">Owner: Employee. Fully editable.</div></div></div>
+      <div class="legend-item"><span class="pill submitted">Submitted</span><div><div class="d">Owner: Manager action. Employee locked out.</div></div></div>
+      <div class="legend-item"><span class="pill approved">Approved</span><div><div class="d">Read-only for everyone but Admin.</div></div></div>
+      <div class="legend-item"><span class="pill rejected">Rejected</span><div><div class="d">Owner: Employee. Comment carried forward.</div></div></div>
+    </div>
+  </section>
+
+  <section id="sequence">
+    <div class="section-head">
+      <span class="num">SECTION 05</span>
+      <h2>Workflow — end-to-end sequence</h2>
+    </div>
+    <p>The request path from an employee filling in a week to a manager's decision, including the reject → resubmit loop.</p>
+    <div class="sheet">
+      <pre class="mermaid">
+%%{init: {"theme":"base","themeVariables":{"background":"#F8FAFB","primaryColor":"#EAF1F6","primaryTextColor":"#1C2733","primaryBorderColor":"#2E6E9E","lineColor":"#5B6B7C","actorBkg":"#EAF1F6","actorBorder":"#2E6E9E","actorTextColor":"#1C2733","signalColor":"#5B6B7C","signalTextColor":"#1C2733","noteBkgColor":"#F3E2CE","noteBorderColor":"#A8632B","fontFamily":"SFMono-Regular, Consolas, monospace","fontSize":"12px"}}}%%
+sequenceDiagram
+  actor E as Employee
+  participant W as React SPA
+  participant A as Web API
+  participant D as SQL Server
+
+  E->>W: Fill weekly grid, Save Draft
+  W->>A: POST /api/timesheets
+  A->>D: Upsert TimesheetWeek + Entries (Status=Draft)
+  A-->>W: 200 OK
+
+  E->>W: Submit
+  W->>A: POST /api/timesheets/{id}/submit
+  A->>D: Status=Submitted, SubmittedAt=now
+  A->>D: ApprovalHistory += Submitted
+  A-->>W: 200 OK
+  Note over E,A: Grid now locked for Employee
+
+  actor M as Manager
+  M->>W: Open Team Timesheets (status=Submitted)
+  W->>A: GET /api/timesheets/team?status=Submitted
+  A->>D: Query direct reports' weeks
+  A-->>W: List
+  M->>W: Open Review Timesheet
+
+  alt Approve
+    M->>W: Approve
+    W->>A: POST /api/timesheets/{id}/approve
+    A->>D: Status=Approved, ApprovedBy, ApprovedAt
+    A->>D: ApprovalHistory += Approved
+    A-->>W: 200 OK — read-only for all but Admin
+  else Reject
+    M->>W: Reject + comment
+    W->>A: POST /api/timesheets/{id}/reject
+    A->>D: Status=Rejected, RejectionComment
+    A->>D: ApprovalHistory += Rejected
+    A-->>W: 200 OK
+    E->>W: Edit rejected week, resubmit
+    W->>A: POST /api/timesheets/{id}/submit
+    Note over E,A: Loops back into Submitted
+  end
+      </pre>
+    </div>
+    <p class="sheet-caption">Fig. 4 — Sequence across Employee, Manager, API and database for one timesheet week.</p>
+  </section>
+
+  <section id="auth-modes">
+    <div class="section-head">
+      <span class="num">SECTION 06</span>
+      <h2>Auth pluggability — the design's central constraint</h2>
+    </div>
+    <p>Everything above — controllers, services, the React auth context — is written once. Only the identity source and token-issuing path differ, selected entirely by <code>Auth:Provider</code>.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Aspect</th><th>Local mode (default, dev)</th><th>Entra ID mode (customer deployment)</th></tr></thead>
+        <tbody>
+          <tr><td>Login UI</td><td>Dropdown of seeded test users (Admin/Manager/Employee)</td><td>MSAL redirect to customer tenant</td></tr>
+          <tr><td>Token</td><td>Locally-issued JWT asserting Id + Role</td><td>Entra-issued JWT, bearer-validated by API</td></tr>
+          <tr><td>Role source</td><td>Seed data <code>Users.Role</code></td><td>Entra group / app-role claims</td></tr>
+          <tr><td>User provisioning</td><td>Pre-seeded</td><td>JIT — mapped to <code>Users</code> table on first login</td></tr>
+          <tr><td>Config switch</td><td><code>Auth:Provider = "Local"</code></td><td><code>Auth:Provider = "EntraId"</code></td></tr>
+          <tr><td>Downstream checks</td><td colspan="2"><code>[Authorize(Roles=...)]</code> — identical either way</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="build-sequence">
+    <div class="section-head">
+      <span class="num">SECTION 07</span>
+      <h2>Build sequence, once approved</h2>
+    </div>
+    <p>Matches the brief's incremental order (Section 8) — each layer verified before the next starts.</p>
+    <ol class="seq">
+      <li>EF Core schema + migrations + seed (Admin/Manager/Employee, sample Projects/Tasks)</li>
+      <li>Web API — Controllers → Services → Repositories, validation, global error handling</li>
+      <li>Local auth mode (seeded dropdown login, JWT issuance, role checks)</li>
+      <li>Employee screens — weekly grid, Save Draft / Submit, My History</li>
+      <li>Manager screens — Team Timesheets, Review + Approve/Reject</li>
+      <li>Admin screens — Projects, Tasks, Users CRUD</li>
+      <li>Branding Config (frontend-only, localStorage)</li>
+      <li>Entra ID auth mode (MSAL, bearer validation, JIT provisioning) + App Insights wiring</li>
+    </ol>
+  </section>
+
+  <section id="assumptions">
+    <div class="section-head">
+      <span class="num">SECTION 08</span>
+      <h2>Assumptions going in</h2>
+    </div>
+    <div class="callout">
+      <h3>Flagging these rather than blocking on them — say if any should change</h3>
+      <ul>
+        <li>Week is hard-coded Mon–Sun for v1, but the boundary is read from config (not a literal switch/day-of-week check), so a future customer's fiscal week is a config change.</li>
+        <li>Hour validation (24h/day ceiling, 8–10h soft warning) is enforced in the Service layer as a warning, not a blocking error, matching "soft validation" in the brief.</li>
+        <li><code>TotalHours</code> on <code>TimesheetWeek</code> is computed server-side on every save rather than trusted from the client.</li>
+        <li>One <code>TimesheetEntry</code> row per (Project, Task) per week — resubmitting a rejected week reuses existing rows rather than creating new ones.</li>
+        <li>Local-mode JWT signing key and seed users live in <code>appsettings.Development.json</code>, excluded from anything resembling a production config.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Timesheet Module — Architecture &amp; Workflow · draft for review · not yet approved for implementation
+  </footer>
+
+</div>
