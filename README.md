@@ -91,6 +91,43 @@ Opens at `http://localhost:5173`. `.env.development` is checked in with sane def
 (`VITE_API_BASE_URL=https://localhost:7059`, `VITE_AUTH_PROVIDER=Local`) — adjust the API URL if
 your `dotnet run` printed a different port.
 
+## Demo mode (no SQL Server)
+
+For demoing on a machine without a SQL Server instance available, the API can run against a
+local SQLite file instead — same seeded users, same features, zero install beyond the .NET SDK.
+`Db:Provider=Sqlite` (set in `appsettings.Demo.json`) builds the schema straight from the current
+EF Core model via `EnsureCreated` rather than migrations, since this path is a demo-only fallback,
+not the source of truth schema.
+
+1. **Set the JWT signing key** (same requirement as normal dev — see step 2 of Backend setup
+   above), from `src/TimesheetManagement.Api`:
+
+   ```
+   dotnet user-secrets set "Auth:Local:SigningKey" "<any long random string>"
+   ```
+
+2. **Run the API in Demo mode**, still from `src/TimesheetManagement.Api`:
+
+   ```
+   $env:ASPNETCORE_ENVIRONMENT = "Demo"
+   dotnet run --no-launch-profile --urls "http://localhost:5080"
+   ```
+
+   `--no-launch-profile` skips `launchSettings.json`, which would otherwise force `Development`
+   + HTTPS with a dev cert the machine may not have trusted yet — plain HTTP sidesteps that.
+   First run creates `timesheet-demo.db` next to the project and seeds it with the same three
+   demo users below — no `dotnet ef database update` needed.
+
+3. **Point the client at that URL.** `client/.env.development` defaults to
+   `https://localhost:7059`; override it locally with a gitignored `client/.env.local`:
+
+   ```
+   VITE_API_BASE_URL=http://localhost:5080
+   ```
+
+4. **Run the frontend** as in Frontend setup above (`npm install && npm run dev`), then sign in
+   from the dropdown with any of the seeded users — no password needed.
+
 ## Tests
 
 ```
